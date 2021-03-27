@@ -1,0 +1,16 @@
+[package]
+name = "simple-paint"
+version = "0.1.0"
+authors = ["Mado Nanika <nanikamado@gmail.com>"]
+edition = "2018"
+description = "A simple painting app"
+license = "MIT"
+
+[profile.release]
+debug = true
+
+[dependencies]
+cairo-rs = "0.9.1"
+gdk = "0.13.2"
+gio = "0.9.1"
+gtk = "0.9.2"
