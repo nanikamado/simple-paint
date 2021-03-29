@@ -41,11 +41,11 @@ fn make_drawer(
                 stride,
             )
             .unwrap();
-            if let Some(context) = &*context.borrow() {
-                context.set_source_surface(&image, 0.0, 0.0);
-                context.paint();
-                widget.queue_draw();
-            };
+            let context = context.borrow();
+            let context = context.as_ref().unwrap();
+            context.set_source_surface(&image, 0.0, 0.0);
+            context.paint();
+            widget.queue_draw();
         },
     )
 }
