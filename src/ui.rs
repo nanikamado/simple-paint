@@ -54,7 +54,7 @@ pub fn build_ui(application: &gtk::Application) {
     window.set_title("Simple Paint");
     window.set_border_width(0);
     window.set_position(gtk::WindowPosition::Center);
-    window.set_default_size(500, 400);
+    window.set_default_size(1000, 800);
 
     let drawing = Rc::new(gtk::DrawingArea::new());
 
