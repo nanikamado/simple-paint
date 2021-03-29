@@ -76,7 +76,7 @@ pub struct PenInput {
     pub pressure: f64,
 }
 
-pub struct Backend {
+pub struct Canvas {
     pub drawer: Box<dyn Fn(&SingleVecImage, (usize, usize))>,
     viewport_size: (usize, usize),
     canvas_size: (usize, usize),
@@ -85,13 +85,13 @@ pub struct Backend {
     previous_input: Option<PenInput>,
 }
 
-impl Backend {
+impl Canvas {
     pub fn new(
         drawer: Box<dyn Fn(&SingleVecImage, (usize, usize))>,
         canvas_size: (usize, usize),
-    ) -> Backend {
+    ) -> Canvas {
         let background_color = RGB::new(0xff, 0xff, 0xff);
-        Backend {
+        Canvas {
             drawer,
             viewport_size: canvas_size,
             canvas_size,

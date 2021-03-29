@@ -2,13 +2,13 @@ use gtk::prelude::*;
 use std::cell::{RefCell, RefMut};
 use std::rc::Rc;
 
-use super::backend::{Backend, PenInput, SingleVecImage};
+use super::backend::{Canvas, PenInput, SingleVecImage};
 
 fn event_cb(
     position: (f64, f64),
     pressure: Option<f64>,
     event_type: gdk::EventType,
-    mut backend: RefMut<Backend>,
+    mut backend: RefMut<Canvas>,
 ) -> gtk::Inhibit {
     let (x, y) = position;
     use gdk::EventType::*;
@@ -51,7 +51,7 @@ fn make_drawer(
 
 fn make_connect_configure_event_cb(
     surface: Rc<RefCell<Option<cairo::Surface>>>,
-    backend: Rc<RefCell<Backend>>,
+    backend: Rc<RefCell<Canvas>>,
     context: Rc<RefCell<Option<cairo::Context>>>,
 ) -> impl Fn(&gtk::DrawingArea, &gdk::EventConfigure) -> bool {
     move |w: &gtk::DrawingArea, _| {
@@ -91,7 +91,7 @@ pub fn build_ui(application: &gtk::Application) {
     let context: Rc<RefCell<Option<cairo::Context>>> =
         Rc::new(RefCell::new(None));
 
-    let backend = Rc::new(RefCell::new(Backend::new(
+    let backend = Rc::new(RefCell::new(Canvas::new(
         make_drawer(drawing.clone(), Rc::clone(&context)),
         (0, 0),
     )));
