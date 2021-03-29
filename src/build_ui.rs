@@ -124,10 +124,8 @@ pub fn build_ui(application: &gtk::Application) {
     });
 
     drawing.connect_draw(move |_, c| {
-        if let Some(s) = &*surface.borrow() {
-            c.set_source_surface(s, 0.0, 0.0);
-            c.paint();
-        }
+        c.set_source_surface(surface.borrow().as_ref().unwrap(), 0.0, 0.0);
+        c.paint();
         gtk::Inhibit(false)
     });
 
