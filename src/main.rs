@@ -1,6 +1,6 @@
 use gio::prelude::*;
 
-mod build_ui;
+mod ui;
 
 fn main() {
     let application = gtk::Application::new(
@@ -10,7 +10,7 @@ fn main() {
     .expect("Initialization failed...");
 
     application.connect_activate(|app| {
-        build_ui::build_ui(app);
+        ui::build_ui(app);
     });
 
     application.run(&std::env::args().collect::<Vec<_>>());
