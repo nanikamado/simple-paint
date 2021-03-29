@@ -1,18 +1,24 @@
-pub(crate) mod canvas;
+mod canvas;
+
+pub use canvas::PenInput;
+use canvas::{Canvas, SingleVecImage, RGB};
 use std::{cell::RefCell, rc::Rc};
 
-use canvas::*;
-
-pub struct Viewport {
+struct ViewportData {
     size: (usize, usize),
     background_color: RGB,
     cairo_context: Rc<RefCell<Option<cairo::Context>>>,
+    canvas_position: (f64, f64),
+}
+
+pub struct Viewport {
+    data: Rc<RefCell<ViewportData>>,
     canvas: Canvas,
     draw_handler: Box<dyn Fn()>,
 }
 
 fn make_draw_handler(
-    cairo_context: Rc<RefCell<Option<cairo::Context>>>,
+    viewport_data: Rc<RefCell<ViewportData>>,
 ) -> Box<dyn Fn(&SingleVecImage, (usize, usize))> {
     Box::new(move |image: &SingleVecImage, canvas_size: (usize, usize)| {
         let stride = cairo::Format::Rgb24
@@ -26,11 +32,18 @@ fn make_draw_handler(
             stride,
         )
         .unwrap();
-        let context = cairo_context.borrow();
+        let viewport_data = viewport_data.borrow();
+        let context = viewport_data.cairo_context.borrow();
         let context = context.as_ref().unwrap();
-        context.set_source_rgb(0.6, 0.6, 0.6);
+        let c = viewport_data.background_color;
+        context.set_source_rgb(
+            c.r() as f64 / 0xff as f64,
+            c.g() as f64 / 0xff as f64,
+            c.b() as f64 / 0xff as f64,
+        );
         context.paint();
-        context.set_source_surface(&image, 0.0, 0.0);
+        let (x, y) = viewport_data.canvas_position;
+        context.set_source_surface(&image, x, y);
         context.paint();
     })
 }
@@ -41,17 +54,27 @@ impl Viewport {
         size: (usize, usize),
         draw_handler: Box<dyn Fn()>,
     ) -> Viewport {
-        Viewport {
+        let data = Rc::new(RefCell::new(ViewportData {
             size,
             background_color: RGB::new(0x33, 0x33, 0x33),
             cairo_context: cairo_context.clone(),
-            canvas: Canvas::new(make_draw_handler(cairo_context), (500, 500)),
+            canvas_position: (0.0, 0.0),
+        }));
+        Viewport {
+            data: data.clone(),
+            canvas: Canvas::new(make_draw_handler(data), (500, 500)),
             draw_handler,
         }
     }
 
     pub fn pen_stroke(&mut self, input: PenInput) {
-        self.canvas.pen_stroke(input);
+        let PenInput { x, y, pressure } = input;
+        let canvas_position = self.data.borrow().canvas_position;
+        self.canvas.pen_stroke(PenInput {
+            x: x - canvas_position.0,
+            y: y - canvas_position.1,
+            pressure,
+        });
         (self.draw_handler)();
     }
 
@@ -65,6 +88,11 @@ impl Viewport {
     }
 
     pub fn set_viewport_size(&mut self, width: usize, height: usize) {
-        self.size = (width, height)
+        let mut data = self.data.borrow_mut();
+        data.size = (width, height);
+        data.canvas_position = (
+            (width as f64 - self.canvas.get_size().0 as f64) / 2.0,
+            (height as f64 - self.canvas.get_size().1 as f64) / 2.0,
+        );
     }
 }

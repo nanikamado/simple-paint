@@ -3,7 +3,7 @@ use std::cell::{RefCell, RefMut};
 use std::rc::Rc;
 
 mod viewport;
-use viewport::canvas::PenInput;
+use viewport::PenInput;
 
 fn event_cb(
     position: (f64, f64),

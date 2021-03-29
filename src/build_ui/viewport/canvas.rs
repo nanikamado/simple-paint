@@ -13,6 +13,18 @@ impl RGB {
             array: [b, g, r, 0],
         }
     }
+
+    pub fn r(self) -> u8 {
+        self.array[2]
+    }
+
+    pub fn g(self) -> u8 {
+        self.array[1]
+    }
+
+    pub fn b(self) -> u8 {
+        self.array[0]
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -43,6 +55,7 @@ impl SingleVecImage {
         self.vector[i..i + 4].clone_from_slice(&color.array);
     }
 
+    #[allow(dead_code)]
     fn extend(&mut self, dx: usize, dy: usize, background: RGB) {
         if dx > 0 {
             self.vector = (0..self.height)
@@ -81,6 +94,7 @@ pub struct Canvas {
     viewport_size: (usize, usize),
     canvas_size: (usize, usize),
     pub image: SingleVecImage,
+    #[allow(dead_code)]
     background_color: RGB,
     previous_input: Option<PenInput>,
 }
@@ -130,6 +144,7 @@ impl Canvas {
         (self.drawer)(&self.image, self.viewport_size);
     }
 
+    #[allow(dead_code)]
     pub fn set_viewport_size(&mut self, width: usize, height: usize) {
         let dx = (width as i32) - (self.canvas_size.0 as i32);
         let dy = (height as i32) - (self.canvas_size.1 as i32);
@@ -142,5 +157,9 @@ impl Canvas {
             self.canvas_size.1 = height;
         }
         self.viewport_size = (width, height);
+    }
+
+    pub fn get_size(&self) -> (usize, usize) {
+        self.canvas_size
     }
 }
