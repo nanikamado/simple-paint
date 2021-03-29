@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use super::canvas::*;
+use super::*;
 
 fn rectangle(r: i32) -> impl Iterator<Item = (i32, i32)> {
     (-r..=r).flat_map(move |x| (-r..=r).map(move |y| (x, y)))
