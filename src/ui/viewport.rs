@@ -54,15 +54,19 @@ impl Viewport {
         size: (usize, usize),
         draw_handler: Box<dyn Fn()>,
     ) -> Viewport {
+        let canvas_size = (500, 500);
         let data = Rc::new(RefCell::new(ViewportData {
             size,
             background_color: RGB::new(0x33, 0x33, 0x33),
             cairo_context: cairo_context.clone(),
-            canvas_position: (0.0, 0.0),
+            canvas_position: (
+                (size.0 as f64 - canvas_size.0 as f64) / 2.0,
+                (size.0 as f64 - canvas_size.1 as f64) / 2.0,
+            ),
         }));
         Viewport {
             data: data.clone(),
-            canvas: Canvas::new(make_draw_handler(data), (500, 500)),
+            canvas: Canvas::new(make_draw_handler(data), canvas_size),
             draw_handler,
         }
     }
@@ -90,9 +94,17 @@ impl Viewport {
     pub fn set_viewport_size(&mut self, width: usize, height: usize) {
         let mut data = self.data.borrow_mut();
         data.size = (width, height);
-        data.canvas_position = (
-            (width as f64 - self.canvas.get_size().0 as f64) / 2.0,
-            (height as f64 - self.canvas.get_size().1 as f64) / 2.0,
-        );
+    }
+
+    pub fn set_canvas_center(&mut self) {
+        {
+            let mut data = self.data.borrow_mut();
+            data.canvas_position = (
+                (data.size.0 as f64 - self.canvas.get_size().0 as f64) / 2.0,
+                (data.size.1 as f64 - self.canvas.get_size().1 as f64) / 2.0,
+            );
+        }
+        self.canvas.reflect_all();
+        (self.draw_handler)();
     }
 }
