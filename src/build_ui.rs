@@ -3,18 +3,18 @@ use std::cell::{RefCell, RefMut};
 use std::rc::Rc;
 
 mod viewport;
-use viewport::canvas::{Canvas, PenInput, SingleVecImage};
+use viewport::canvas::PenInput;
 
 fn event_cb(
     position: (f64, f64),
     pressure: Option<f64>,
     event_type: gdk::EventType,
-    mut backend: RefMut<Canvas>,
+    mut viewport: RefMut<viewport::Viewport>,
 ) -> gtk::Inhibit {
     let (x, y) = position;
     use gdk::EventType::*;
     match event_type {
-        ButtonPress | MotionNotify => backend.pen_stroke(PenInput {
+        ButtonPress | MotionNotify => viewport.pen_stroke(PenInput {
             x,
             y,
             pressure: pressure.unwrap_or(0.2),
@@ -24,36 +24,10 @@ fn event_cb(
     gtk::Inhibit(false)
 }
 
-fn make_drawer(
-    widget: gtk::DrawingArea,
-    context: Rc<RefCell<Option<cairo::Context>>>,
-) -> Box<dyn Fn(&SingleVecImage, (usize, usize))> {
-    Box::new(
-        move |canvas: &SingleVecImage, canvas_size: (usize, usize)| {
-            let stride = cairo::Format::Rgb24
-                .stride_for_width(canvas.width as u32)
-                .unwrap();
-            let image = cairo::ImageSurface::create_for_data(
-                canvas.vector.clone(),
-                cairo::Format::Rgb24,
-                canvas_size.0 as i32,
-                canvas_size.1 as i32,
-                stride,
-            )
-            .unwrap();
-            let context = context.borrow();
-            let context = context.as_ref().unwrap();
-            context.set_source_surface(&image, 0.0, 0.0);
-            context.paint();
-            widget.queue_draw();
-        },
-    )
-}
-
 fn make_connect_configure_event_cb(
     surface: Rc<RefCell<Option<cairo::Surface>>>,
-    backend: Rc<RefCell<Canvas>>,
     context: Rc<RefCell<Option<cairo::Context>>>,
+    viewport: Rc<RefCell<viewport::Viewport>>,
 ) -> impl Fn(&gtk::DrawingArea, &gdk::EventConfigure) -> bool {
     move |w: &gtk::DrawingArea, _| {
         let width = w.get_allocated_width();
@@ -65,11 +39,11 @@ fn make_connect_configure_event_cb(
             .unwrap();
         *context.borrow_mut() = Some(cairo::Context::new(&s));
         *surface.borrow_mut() = Some(s);
-        let mut backend = backend.borrow_mut();
         let width = width as usize;
         let height = height as usize;
-        backend.set_viewport_size(width, height);
-        backend.reflect_all();
+        let mut viewport = viewport.borrow_mut();
+        viewport.set_viewport_size(width, height);
+        viewport.reflect_all();
         true
     }
 }
@@ -82,7 +56,7 @@ pub fn build_ui(application: &gtk::Application) {
     window.set_position(gtk::WindowPosition::Center);
     window.set_default_size(500, 400);
 
-    let drawing = gtk::DrawingArea::new();
+    let drawing = Rc::new(gtk::DrawingArea::new());
 
     drawing.add_events(gdk::EventMask::BUTTON1_MOTION_MASK);
     drawing.add_events(gdk::EventMask::BUTTON_PRESS_MASK);
@@ -92,34 +66,38 @@ pub fn build_ui(application: &gtk::Application) {
     let context: Rc<RefCell<Option<cairo::Context>>> =
         Rc::new(RefCell::new(None));
 
-    let backend = Rc::new(RefCell::new(Canvas::new(
-        make_drawer(drawing.clone(), Rc::clone(&context)),
+    let viewport = Rc::new(RefCell::new(viewport::Viewport::new(
+        context.clone(),
         (0, 0),
+        {
+            let drawing_clone = drawing.clone();
+            Box::new(move || drawing_clone.queue_draw())
+        },
     )));
 
     drawing.connect_configure_event(make_connect_configure_event_cb(
         Rc::clone(&surface),
-        Rc::clone(&backend),
-        context,
+        context.clone(),
+        viewport.clone(),
     ));
 
-    let c_backend = Rc::clone(&backend);
+    let viewport_clone = viewport.clone();
     drawing.connect_button_press_event(move |_, e| {
         event_cb(
             e.get_position(),
             e.get_axis(gdk::AxisUse::Pressure),
             e.get_event_type(),
-            c_backend.borrow_mut(),
+            viewport_clone.borrow_mut(),
         )
     });
 
-    let c_backend = Rc::clone(&backend);
+    let viewport_clone = viewport.clone();
     drawing.connect_motion_notify_event(move |_, e| {
         event_cb(
             e.get_position(),
             e.get_axis(gdk::AxisUse::Pressure),
             e.get_event_type(),
-            c_backend.borrow_mut(),
+            viewport_clone.borrow_mut(),
         )
     });
 
@@ -130,10 +108,10 @@ pub fn build_ui(application: &gtk::Application) {
     });
 
     drawing.connect_button_release_event(move |_, _| {
-        backend.borrow_mut().pen_stroke_end();
+        viewport.borrow_mut().pen_stroke_end();
         gtk::Inhibit(false)
     });
 
-    window.add(&drawing);
+    window.add(&*drawing);
     window.show_all();
 }
