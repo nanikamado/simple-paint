@@ -113,12 +113,7 @@ pub fn build_ui(application: &gtk::Application) {
         gtk::Inhibit(false)
     });
 
-    drawing.connect_realize(move |w| {
-        println!(
-            "realized. width = {}, height = {}",
-            w.get_allocated_width(),
-            w.get_allocated_height(),
-        );
+    drawing.connect_realize(move |_| {
         viewport.borrow_mut().set_canvas_center();
     });
 
