@@ -1,7 +1,6 @@
 use gio::prelude::*;
 
 mod build_ui;
-mod viewport;
 
 fn main() {
     let application = gtk::Application::new(

@@ -2,7 +2,8 @@ use gtk::prelude::*;
 use std::cell::{RefCell, RefMut};
 use std::rc::Rc;
 
-use super::viewport::canvas::{Canvas, PenInput, SingleVecImage};
+mod viewport;
+use viewport::canvas::{Canvas, PenInput, SingleVecImage};
 
 fn event_cb(
     position: (f64, f64),
