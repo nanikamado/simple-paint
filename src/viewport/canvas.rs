@@ -1,6 +1,6 @@
 use std::iter::repeat;
 
-mod pen;
+use super::pen;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RGB {
