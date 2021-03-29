@@ -80,7 +80,7 @@ pub struct Backend {
     pub drawer: Box<dyn Fn(&SingleVecImage, (usize, usize))>,
     viewport_size: (usize, usize),
     canvas_size: (usize, usize),
-    pub canvas: SingleVecImage,
+    pub image: SingleVecImage,
     background_color: RGB,
     previous_input: Option<PenInput>,
 }
@@ -95,7 +95,7 @@ impl Backend {
             drawer,
             viewport_size: canvas_size,
             canvas_size,
-            canvas: SingleVecImage::new(
+            image: SingleVecImage::new(
                 repeat(background_color),
                 canvas_size.0,
                 canvas_size.1,
@@ -114,12 +114,12 @@ impl Backend {
             })
             .map(|((x, y), color)| ((x as u32, y as u32), color))
             .map(|((x, y), color)| {
-                self.canvas.set(x as usize, y as usize, color);
+                self.image.set(x as usize, y as usize, color);
                 ((x, y), color)
             })
             .collect::<Vec<_>>();
         self.previous_input = Some(input);
-        (self.drawer)(&self.canvas, self.viewport_size);
+        (self.drawer)(&self.image, self.viewport_size);
     }
 
     pub fn pen_stroke_end(&mut self) {
@@ -127,18 +127,18 @@ impl Backend {
     }
 
     pub fn reflect_all(&mut self) {
-        (self.drawer)(&self.canvas, self.viewport_size);
+        (self.drawer)(&self.image, self.viewport_size);
     }
 
     pub fn set_viewport_size(&mut self, width: usize, height: usize) {
         let dx = (width as i32) - (self.canvas_size.0 as i32);
         let dy = (height as i32) - (self.canvas_size.1 as i32);
         if dx > 0 {
-            self.canvas.extend(dx as usize, 0, self.background_color);
+            self.image.extend(dx as usize, 0, self.background_color);
             self.canvas_size.0 = width;
         }
         if dy > 0 {
-            self.canvas.extend(0, dy as usize, self.background_color);
+            self.image.extend(0, dy as usize, self.background_color);
             self.canvas_size.1 = height;
         }
         self.viewport_size = (width, height);
