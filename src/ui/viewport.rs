@@ -107,4 +107,11 @@ impl Viewport {
         self.canvas.reflect_all();
         (self.draw_handler)();
     }
+
+    pub fn key_press(&self, key: gdk::keys::Key) {
+        match key {
+            gdk::keys::constants::space => println!("Space key pressed"),
+            _ => println!("Some other key"),
+        }
+    }
 }

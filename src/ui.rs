@@ -61,11 +61,13 @@ pub fn build_ui(application: &gtk::Application) {
     drawing.add_events(gdk::EventMask::BUTTON1_MOTION_MASK);
     drawing.add_events(gdk::EventMask::BUTTON_PRESS_MASK);
     drawing.add_events(gdk::EventMask::BUTTON_RELEASE_MASK);
+    drawing.add_events(gdk::EventMask::KEY_PRESS_MASK);
+    drawing.add_events(gdk::EventMask::KEY_RELEASE_MASK);
+
     let surface: Rc<RefCell<Option<cairo::Surface>>> =
         Rc::new(RefCell::new(None));
     let context: Rc<RefCell<Option<cairo::Context>>> =
         Rc::new(RefCell::new(None));
-
     let viewport = Rc::new(RefCell::new(viewport::Viewport::new(
         context.clone(),
         (0, 0),
@@ -110,6 +112,13 @@ pub fn build_ui(application: &gtk::Application) {
     let viewport_clone = viewport.clone();
     drawing.connect_button_release_event(move |_, _| {
         viewport_clone.borrow_mut().pen_stroke_end();
+        gtk::Inhibit(false)
+    });
+
+    drawing.set_can_focus(true);
+    let viewport_clone = viewport.clone();
+    drawing.connect_key_press_event(move |_, key| {
+        viewport_clone.borrow().key_press(key.get_keyval());
         gtk::Inhibit(false)
     });
 
