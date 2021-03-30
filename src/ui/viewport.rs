@@ -10,11 +10,17 @@ struct ViewportData {
     cairo_context: Rc<RefCell<Option<cairo::Context>>>,
     canvas_position: (f64, f64),
 }
+enum PenKind {
+    PanCanvas,
+    Circle,
+}
 
 pub struct Viewport {
     data: Rc<RefCell<ViewportData>>,
     canvas: Canvas,
     draw_handler: Box<dyn Fn()>,
+    pen_kind: PenKind,
+    previous_input: Option<PenInput>,
 }
 
 fn make_draw_handler(
@@ -68,21 +74,35 @@ impl Viewport {
             data: data.clone(),
             canvas: Canvas::new(make_draw_handler(data), canvas_size),
             draw_handler,
+            pen_kind: PenKind::Circle,
+            previous_input: None,
         }
     }
 
     pub fn pen_stroke(&mut self, input: PenInput) {
         let PenInput { x, y, pressure } = input;
         let canvas_position = self.data.borrow().canvas_position;
-        self.canvas.pen_stroke(PenInput {
-            x: x - canvas_position.0,
-            y: y - canvas_position.1,
-            pressure,
-        });
+        match self.pen_kind {
+            PenKind::Circle => {
+                let x = x - canvas_position.0;
+                let y = y - canvas_position.1;
+                self.canvas.pen_stroke(PenInput { x, y, pressure });
+            }
+            PenKind::PanCanvas => {
+                let i = &self.previous_input;
+                if let Some(i) = i {
+                    let dx = x - i.x;
+                    let dy = y - i.y;
+                    self.move_canvas_relative(dx, dy);
+                }
+            }
+        }
         (self.draw_handler)();
+        self.previous_input = Some(input);
     }
 
     pub fn pen_stroke_end(&mut self) {
+        self.previous_input = None;
         self.canvas.pen_stroke_end()
     }
 
@@ -96,22 +116,41 @@ impl Viewport {
         data.size = (width, height);
     }
 
-    pub fn set_canvas_center(&mut self) {
+    fn move_canvas_relative(&mut self, dx: f64, dy: f64) {
+        let (x, y) = self.data.borrow().canvas_position;
+        self.move_canvas(x + dx, y + dy);
+    }
+
+    fn move_canvas(&mut self, x: f64, y: f64) {
         {
             let mut data = self.data.borrow_mut();
-            data.canvas_position = (
-                (data.size.0 as f64 - self.canvas.get_size().0 as f64) / 2.0,
-                (data.size.1 as f64 - self.canvas.get_size().1 as f64) / 2.0,
-            );
+            data.canvas_position = (x, y);
         }
         self.canvas.reflect_all();
         (self.draw_handler)();
     }
 
-    pub fn key_press(&self, key: gdk::keys::Key) {
+    pub fn set_canvas_center(&mut self) {
+        let size = self.data.borrow().size;
+        let canvas_width = self.canvas.get_size().0 as f64;
+        let canvas_height = self.canvas.get_size().1 as f64;
+        self.move_canvas(
+            (size.0 as f64 - canvas_width) / 2.0,
+            (size.1 as f64 - canvas_height) / 2.0,
+        )
+    }
+
+    pub fn key_press(&mut self, key: gdk::keys::Key) {
         match key {
-            gdk::keys::constants::space => println!("Space key pressed"),
-            _ => println!("Some other key"),
+            gdk::keys::constants::space => self.pen_kind = PenKind::PanCanvas,
+            _ => {}
+        }
+    }
+
+    pub fn key_release(&mut self, key: gdk::keys::Key) {
+        match key {
+            gdk::keys::constants::space => self.pen_kind = PenKind::Circle,
+            _ => {}
         }
     }
 }

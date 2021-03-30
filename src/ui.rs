@@ -118,7 +118,13 @@ pub fn build_ui(application: &gtk::Application) {
     drawing.set_can_focus(true);
     let viewport_clone = viewport.clone();
     drawing.connect_key_press_event(move |_, key| {
-        viewport_clone.borrow().key_press(key.get_keyval());
+        viewport_clone.borrow_mut().key_press(key.get_keyval());
+        gtk::Inhibit(false)
+    });
+
+    let viewport_clone = viewport.clone();
+    drawing.connect_key_release_event(move |_, key| {
+        viewport_clone.borrow_mut().key_release(key.get_keyval());
         gtk::Inhibit(false)
     });
 
