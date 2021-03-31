@@ -66,7 +66,7 @@ impl Viewport {
         size: (usize, usize),
         draw_handler: Box<dyn Fn()>,
     ) -> Viewport {
-        let canvas_size = (500, 500);
+        let canvas_size = (2000, 1000);
         let data = Rc::new(RefCell::new(ViewportData {
             size,
             background_color: RGB::new(0x33, 0x33, 0x40),
@@ -175,9 +175,9 @@ impl Viewport {
     fn zoom_canvas_relative(&mut self, ds: f64, origin: (f64, f64)) {
         {
             let mut data = self.data.borrow_mut();
-            data.canvas_display_matrix.scale(ds, ds);
             data.canvas_display_matrix
-                .translate((1.0 - ds) * origin.0, (1.0 - ds) * origin.1);
+            .translate((1.0 - ds) * origin.0, (1.0 - ds) * origin.1);
+            data.canvas_display_matrix.scale(ds, ds);
         }
         self.reflect_all()
     }
