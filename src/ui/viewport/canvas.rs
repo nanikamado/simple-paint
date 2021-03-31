@@ -125,7 +125,7 @@ impl Canvas {
         let canvas_y = self.canvas_size.1 as i32;
         let _changed_pixels = pen::circle_pen(&input, &self.previous_input)
             .filter(|((x, y), _)| {
-                0 < *x && *x < canvas_w && 0 < *y && *y < canvas_y
+                0 <= *x && *x < canvas_w && 0 <= *y && *y < canvas_y
             })
             .map(|((x, y), color)| ((x as u32, y as u32), color))
             .map(|((x, y), color)| {
