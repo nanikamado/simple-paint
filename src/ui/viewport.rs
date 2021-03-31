@@ -68,7 +68,7 @@ impl Viewport {
         let canvas_size = (500, 500);
         let data = Rc::new(RefCell::new(ViewportData {
             size,
-            background_color: RGB::new(0x33, 0x33, 0x33),
+            background_color: RGB::new(0x33, 0x33, 0x40),
             cairo_context,
             canvas_display_matrix: cairo::Matrix::identity(),
         }));
