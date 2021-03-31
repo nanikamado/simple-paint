@@ -83,6 +83,7 @@ impl SingleVecImage {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct PenInput {
     pub x: f64,
     pub y: f64,
