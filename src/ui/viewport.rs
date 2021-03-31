@@ -25,6 +25,7 @@ pub struct Viewport {
     pen_kind: PenKind,
     previous_input: Option<PenInput>,
     pressing_keys: HashSet<gdk::keys::Key>,
+    stroke_start_position: Option<(f64, f64)>,
 }
 
 fn make_draw_handler(
@@ -79,6 +80,7 @@ impl Viewport {
             pen_kind: PenKind::Circle,
             previous_input: None,
             pressing_keys: HashSet::new(),
+            stroke_start_position: None,
         }
     }
 
@@ -91,39 +93,51 @@ impl Viewport {
     }
 
     pub fn pen_stroke(&mut self, input: PenInput) {
+        let adjusted_input = self.apply_inv_matrix(input);
         match self.pen_kind {
             PenKind::Circle => {
-                let input = self.apply_inv_matrix(input);
-                self.canvas.pen_stroke(input);
+                self.canvas.pen_stroke(adjusted_input);
             }
             PenKind::PanCanvas => {
-                let input = self.apply_inv_matrix(input);
                 if let Some(i) = self.previous_input {
                     let i = &self.apply_inv_matrix(i);
-                    let dx = input.x - i.x;
-                    let dy = input.y - i.y;
+                    let dx = adjusted_input.x - i.x;
+                    let dy = adjusted_input.y - i.y;
                     self.move_canvas_relative(dx, dy);
                 }
             }
             PenKind::Zoom => {
                 let i = &self.previous_input;
-                if let Some(i) = i {
+                if let Some(previous) = i {
                     let ds = (2_f64).powf(
-                        ((input.y - i.y).powi(2) + (input.x - i.x).powi(2))
-                            .sqrt()
-                            * (i.y - input.y).signum()
+                        ((input.y - previous.y).powi(2)
+                            + (input.x - previous.x).powi(2))
+                        .sqrt()
+                            * (previous.y - input.y).signum()
                             / 500.0,
                     );
-                    self.zoom_canvas_relative(ds);
+                    self.zoom_canvas_relative(
+                        ds,
+                        if ds > 1.0 {
+                            self.stroke_start_position.unwrap()
+                        } else {
+                            (adjusted_input.x, adjusted_input.y)
+                        },
+                    );
                 }
             }
         }
         (self.draw_handler)();
+        if self.previous_input.is_none() {
+            self.stroke_start_position =
+                Some((adjusted_input.x, adjusted_input.y));
+        }
         self.previous_input = Some(input);
     }
 
     pub fn pen_stroke_end(&mut self) {
         self.previous_input = None;
+        self.stroke_start_position = None;
         self.canvas.pen_stroke_end()
     }
 
@@ -158,8 +172,13 @@ impl Viewport {
         )
     }
 
-    fn zoom_canvas_relative(&mut self, ds: f64) {
-        self.data.borrow_mut().canvas_display_matrix.scale(ds, ds);
+    fn zoom_canvas_relative(&mut self, ds: f64, origin: (f64, f64)) {
+        {
+            let mut data = self.data.borrow_mut();
+            data.canvas_display_matrix.scale(ds, ds);
+            data.canvas_display_matrix
+                .translate((1.0 - ds) * origin.0, (1.0 - ds) * origin.1);
+        }
         self.reflect_all()
     }
 
