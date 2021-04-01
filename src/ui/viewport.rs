@@ -151,7 +151,7 @@ impl Viewport {
             let mut data = self.data.borrow_mut();
             data.size = (width, height);
         }
-        self.reflect_all()
+        self.canvas.reflect_all();
     }
 
     fn move_canvas_relative(&mut self, dx: f64, dy: f64) {
@@ -159,7 +159,7 @@ impl Viewport {
             .borrow_mut()
             .canvas_display_matrix
             .translate(dx, dy);
-        self.reflect_all();
+        self.canvas.reflect_all();
     }
 
     pub fn set_canvas_center(&mut self) {
@@ -176,10 +176,10 @@ impl Viewport {
         {
             let mut data = self.data.borrow_mut();
             data.canvas_display_matrix
-            .translate((1.0 - ds) * origin.0, (1.0 - ds) * origin.1);
+                .translate((1.0 - ds) * origin.0, (1.0 - ds) * origin.1);
             data.canvas_display_matrix.scale(ds, ds);
         }
-        self.reflect_all()
+        self.canvas.reflect_all();
     }
 
     pub fn key_press(&mut self, key: gdk::keys::Key) {
