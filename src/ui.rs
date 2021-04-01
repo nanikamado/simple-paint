@@ -132,6 +132,20 @@ pub fn build_ui(application: &gtk::Application) {
         viewport.borrow_mut().set_canvas_center();
     });
 
-    window.add(&*drawing);
+    drawing.set_hexpand(true);
+    drawing.set_vexpand(true);
+
+    let scale = gtk::Scale::new(
+        gtk::Orientation::Vertical,
+        Some(&gtk::Adjustment::new(30.0, 0.0, 100.0, 1.0, 10.0, 00.0)),
+    );
+    scale.set_vexpand(true);
+
+    let grid = gtk::Grid::new();
+    grid.add(&*drawing);
+    grid.add(&scale);
+
+    window.set_can_focus(true);
+    window.add(&grid);
     window.show_all();
 }
