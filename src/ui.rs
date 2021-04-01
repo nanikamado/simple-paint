@@ -141,6 +141,7 @@ pub fn build_ui(application: &gtk::Application) {
         Some(&gtk::Adjustment::new(30.0, 0.0, 100.0, 1.0, 2.0, 00.0)),
     );
     scale.set_vexpand(true);
+    scale.set_can_focus(false);
 
     scale.connect_value_changed(move |s| {
         viewport.borrow_mut().set_pen_size(s.get_value())
@@ -150,7 +151,6 @@ pub fn build_ui(application: &gtk::Application) {
     grid.add(&*drawing);
     grid.add(&scale);
 
-    window.set_can_focus(true);
     window.add(&grid);
     window.show_all();
 }
