@@ -138,7 +138,7 @@ pub fn build_ui(application: &gtk::Application) {
 
     let scale = gtk::Scale::new(
         gtk::Orientation::Vertical,
-        Some(&gtk::Adjustment::new(30.0, 0.0, 100.0, 1.0, 10.0, 00.0)),
+        Some(&gtk::Adjustment::new(30.0, 0.0, 100.0, 1.0, 2.0, 00.0)),
     );
     scale.set_vexpand(true);
 
