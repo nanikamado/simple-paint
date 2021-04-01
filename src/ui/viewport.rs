@@ -208,4 +208,8 @@ impl Viewport {
             self.pen_kind = PenKind::Circle
         }
     }
+
+    pub fn set_pen_size(&mut self, size: f64) {
+        self.canvas.set_pen_size(size);
+    }
 }

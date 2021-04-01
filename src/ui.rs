@@ -17,7 +17,7 @@ fn event_cb(
         ButtonPress | MotionNotify => viewport.pen_stroke(PenInput {
             x,
             y,
-            pressure: pressure.unwrap_or(0.2),
+            pressure: pressure.unwrap_or(0.7),
         }),
         _ => (),
     };
@@ -128,8 +128,9 @@ pub fn build_ui(application: &gtk::Application) {
         gtk::Inhibit(false)
     });
 
+    let viewport_clone = viewport.clone();
     drawing.connect_realize(move |_| {
-        viewport.borrow_mut().set_canvas_center();
+        viewport_clone.borrow_mut().set_canvas_center();
     });
 
     drawing.set_hexpand(true);
@@ -140,6 +141,10 @@ pub fn build_ui(application: &gtk::Application) {
         Some(&gtk::Adjustment::new(30.0, 0.0, 100.0, 1.0, 10.0, 00.0)),
     );
     scale.set_vexpand(true);
+
+    scale.connect_value_changed(move |s| {
+        viewport.borrow_mut().set_pen_size(s.get_value())
+    });
 
     let grid = gtk::Grid::new();
     grid.add(&*drawing);

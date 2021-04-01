@@ -2,6 +2,10 @@ use std::collections::HashSet;
 
 use super::*;
 
+pub struct PenSetting {
+    pub size: f64,
+}
+
 fn rectangle(r: i32) -> impl Iterator<Item = (i32, i32)> {
     (-r..=r).flat_map(move |x| (-r..=r).map(move |y| (x, y)))
 }
@@ -65,20 +69,26 @@ fn line(
     )
 }
 
-fn pressure_to_radias(p: f64) -> f64 {
-    p * 20.0
+fn pressure_to_radias(p: f64, size: f64) -> f64 {
+    p * size
 }
 
 fn circle_pen_outline(
     input: &PenInput,
     previous_input: &Option<PenInput>,
+    setting: &PenSetting,
 ) -> HashSet<(i32, i32)> {
     match previous_input {
-        None => circle(pressure_to_radias(input.pressure), input.x, input.y)
-            .collect(),
+        None => circle(
+            pressure_to_radias(input.pressure, setting.size),
+            input.x,
+            input.y,
+        )
+        .collect(),
         Some(previous_input) => {
-            let previous_size = pressure_to_radias(previous_input.pressure);
-            let size = pressure_to_radias(input.pressure);
+            let previous_size =
+                pressure_to_radias(previous_input.pressure, setting.size);
+            let size = pressure_to_radias(input.pressure, setting.size);
             circle(previous_size, previous_input.x, previous_input.y)
                 .chain(circle(size, input.x, input.y))
                 .chain(line(
@@ -97,8 +107,9 @@ fn circle_pen_outline(
 pub fn circle_pen(
     input: &PenInput,
     previous_input: &Option<PenInput>,
+    setting: &PenSetting,
 ) -> impl Iterator<Item = ((i32, i32), RGB)> {
-    let h = circle_pen_outline(input, previous_input);
+    let h = circle_pen_outline(input, previous_input, setting);
     h.into_iter().map(|p| (p, RGB::new(0, 0, 0)))
 }
 
