@@ -17,11 +17,11 @@ fn circle(r: f64, x: f64, y: f64) -> impl Iterator<Item = (i32, i32)> {
         .filter(move |(x, y)| {
             let dx = x.abs();
             let dy = y.abs();
-            (dx.pow(2) + dy.pow(2)) as f64 <= r.powf(2.0)
+            ((dx.pow(2) + dy.pow(2)) as f64) < r.powi(2)
         })
         .map(move |(x, y)| {
-            let x = x + p_x.round() as i32;
-            let y = y + p_y.round() as i32;
+            let x = x + p_x.floor() as i32;
+            let y = y + p_y.floor() as i32;
             (x, y)
         })
 }
@@ -41,6 +41,10 @@ fn line(
     x2: f64,
     y2: f64,
 ) -> impl Iterator<Item = (i32, i32)> {
+    let x1 = x1.floor();
+    let x2 = x2.floor();
+    let y1 = y1.floor();
+    let y2 = y2.floor();
     let min = |a1: f64, a2: f64| {
         (if a1 < a2 { a1 - r1 } else { a2 - r2 }).floor() as i32
     };
@@ -55,15 +59,15 @@ fn line(
         move |(x, y)| {
             let relative_x = *x as f64 - x1;
             let relative_y = *y as f64 - y1;
-            let ratio =
-                (dx * relative_x + dy * relative_y) / (dx.powi(2) + dy.powi(2));
-            if ratio < 0.0 || 1.0 < ratio {
+            let len_pow_2 = dx.powi(2) + dy.powi(2);
+            let ratio_mul_len_pow_2 = dx * relative_x + dy * relative_y;
+            if ratio_mul_len_pow_2 < 0.0 || len_pow_2 < ratio_mul_len_pow_2 {
                 false
             } else {
-                let border_d = ratio * r2 + (1.0 - ratio) * r1;
-                let d = (hx * relative_x + hy * relative_y).abs()
-                    / (hx.powi(2) + hy.powi(2)).sqrt();
-                border_d > d
+                let border_d_mul_len_pow_2 = ratio_mul_len_pow_2 * r2
+                    + (len_pow_2 - ratio_mul_len_pow_2) * r1;
+                let d_mul_len = (hx * relative_x + hy * relative_y).abs();
+                border_d_mul_len_pow_2 > d_mul_len * len_pow_2.sqrt()
             }
         },
     )
