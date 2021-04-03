@@ -125,11 +125,11 @@ impl Canvas {
 
     pub fn pen_stroke(&mut self, input: PenInput) {
         let canvas_w = self.canvas_size.0 as i32;
-        let canvas_y = self.canvas_size.1 as i32;
+        let canvas_h = self.canvas_size.1 as i32;
         let _changed_pixels =
             pen::circle_pen(&input, &self.previous_input, &self.pen_setting)
                 .filter(|((x, y), _)| {
-                    0 <= *x && *x < canvas_w && 0 <= *y && *y < canvas_y
+                    0 <= *x && *x < canvas_w && 0 <= *y && *y < canvas_h
                 })
                 .map(|((x, y), color)| ((x as u32, y as u32), color))
                 .map(|((x, y), color)| {
