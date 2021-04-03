@@ -117,6 +117,7 @@ pub fn circle_pen(
     h.into_iter().map(|p| (p, RGB::new(0, 0, 0)))
 }
 
+#[allow(dead_code)]
 pub fn debug_pen(
     input: &PenInput,
     previous_input: &Option<PenInput>,
