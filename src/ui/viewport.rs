@@ -30,34 +30,50 @@ pub struct Viewport {
 
 fn make_draw_handler(
     viewport_data: Rc<RefCell<ViewportData>>,
-) -> Box<dyn Fn(&SingleVecImage, (usize, usize))> {
-    Box::new(move |image: &SingleVecImage, canvas_size: (usize, usize)| {
-        let stride = cairo::Format::Rgb24
-            .stride_for_width(image.width as u32)
+) -> canvas::DrawHandler {
+    Box::new(
+        move |image: &SingleVecImage,
+              canvas_size: (usize, usize),
+              changed_area: canvas::Rectangle| {
+            let stride = cairo::Format::Rgb24
+                .stride_for_width(image.width as u32)
+                .unwrap();
+            let image = cairo::ImageSurface::create_for_data(
+                image.vector.clone(),
+                cairo::Format::Rgb24,
+                canvas_size.0 as i32,
+                canvas_size.1 as i32,
+                stride,
+            )
             .unwrap();
-        let image = cairo::ImageSurface::create_for_data(
-            image.vector.clone(),
-            cairo::Format::Rgb24,
-            canvas_size.0 as i32,
-            canvas_size.1 as i32,
-            stride,
-        )
-        .unwrap();
-        let viewport_data = viewport_data.borrow();
-        let context = viewport_data.cairo_context.borrow();
-        let context = context.as_ref().unwrap();
-        let c = viewport_data.background_color;
-        context.set_source_rgb(
-            c.r() as f64 / 0xff as f64,
-            c.g() as f64 / 0xff as f64,
-            c.b() as f64 / 0xff as f64,
-        );
-        context.paint();
-        context.set_matrix(viewport_data.canvas_display_matrix);
-        context.set_source_surface(&image, 0.0, 0.0);
-        context.get_source().set_filter(cairo::Filter::Nearest);
-        context.paint();
-    })
+            let viewport_data = viewport_data.borrow();
+            let context = viewport_data.cairo_context.borrow();
+            let context = context.as_ref().unwrap();
+            context.save();
+            context.set_matrix(viewport_data.canvas_display_matrix);
+            context.rectangle(
+                changed_area.x,
+                changed_area.y,
+                changed_area.width,
+                changed_area.height,
+            );
+            context.clip();
+            context.set_source_surface(&image, 0.0, 0.0);
+            let filter = if viewport_data
+                .canvas_display_matrix
+                .transform_distance(1.0, 0.0)
+                .0
+                > 1.5
+            {
+                cairo::Filter::Nearest
+            } else {
+                cairo::Filter::Good
+            };
+            context.get_source().set_filter(filter);
+            context.paint();
+            context.restore();
+        },
+    )
 }
 
 impl Viewport {
@@ -82,6 +98,19 @@ impl Viewport {
             pressing_keys: HashSet::new(),
             stroke_start_position: None,
         }
+    }
+
+    fn clear(&self) {
+        let viewport_data = self.data.borrow();
+        let context = viewport_data.cairo_context.borrow();
+        let context = context.as_ref().unwrap();
+        let c = viewport_data.background_color;
+        context.set_source_rgb(
+            c.r() as f64 / 0xff as f64,
+            c.g() as f64 / 0xff as f64,
+            c.b() as f64 / 0xff as f64,
+        );
+        context.paint();
     }
 
     fn apply_inv_matrix(&self, input: PenInput) -> PenInput {
@@ -142,6 +171,7 @@ impl Viewport {
     }
 
     pub fn reflect_all(&mut self) {
+        self.clear();
         self.canvas.reflect_all();
         (self.draw_handler)();
     }
@@ -159,6 +189,7 @@ impl Viewport {
             .borrow_mut()
             .canvas_display_matrix
             .translate(dx, dy);
+        self.clear();
         self.canvas.reflect_all();
     }
 
@@ -179,6 +210,7 @@ impl Viewport {
                 .translate((1.0 - ds) * origin.0, (1.0 - ds) * origin.1);
             data.canvas_display_matrix.scale(ds, ds);
         }
+        self.clear();
         self.canvas.reflect_all();
     }
 

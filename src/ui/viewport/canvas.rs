@@ -91,8 +91,17 @@ pub struct PenInput {
     pub pressure: f64,
 }
 
+pub struct Rectangle {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+}
+
+pub type DrawHandler = Box<dyn Fn(&SingleVecImage, (usize, usize), Rectangle)>;
+
 pub struct Canvas {
-    pub drawer: Box<dyn Fn(&SingleVecImage, (usize, usize))>,
+    pub drawer: DrawHandler,
     viewport_size: (usize, usize),
     canvas_size: (usize, usize),
     pub image: SingleVecImage,
@@ -103,10 +112,7 @@ pub struct Canvas {
 }
 
 impl Canvas {
-    pub fn new(
-        drawer: Box<dyn Fn(&SingleVecImage, (usize, usize))>,
-        canvas_size: (usize, usize),
-    ) -> Canvas {
+    pub fn new(drawer: DrawHandler, canvas_size: (usize, usize)) -> Canvas {
         let background_color = RGB::new(0xff, 0xff, 0xff);
         Canvas {
             drawer,
@@ -126,19 +132,34 @@ impl Canvas {
     pub fn pen_stroke(&mut self, input: PenInput) {
         let canvas_w = self.canvas_size.0 as i32;
         let canvas_h = self.canvas_size.1 as i32;
-        let _changed_pixels =
+        let mut max_x = 0;
+        let mut min_x = canvas_w as u32;
+        let mut max_y = 0;
+        let mut min_y = canvas_h as u32;
+        let changed_pixels =
             pen::circle_pen(&input, &self.previous_input, &self.pen_setting)
                 .filter(|((x, y), _)| {
                     0 <= *x && *x < canvas_w && 0 <= *y && *y < canvas_h
                 })
                 .map(|((x, y), color)| ((x as u32, y as u32), color))
-                .map(|((x, y), color)| {
-                    self.image.set(x as usize, y as usize, color);
-                    ((x, y), color)
+                .inspect(|((x, y), color)| {
+                    self.image.set(*x as usize, *y as usize, *color);
+                    max_x = max_x.max(*x);
+                    min_x = min_x.min(*x);
+                    max_y = max_y.max(*y);
+                    min_y = min_y.min(*y);
                 })
                 .collect::<Vec<_>>();
         self.previous_input = Some(input);
-        (self.drawer)(&self.image, self.viewport_size);
+        if !changed_pixels.is_empty() {
+            let changed_area = Rectangle {
+                x: min_x as f64,
+                y: min_y as f64,
+                width: (max_x - min_x) as f64,
+                height: (max_y - min_y) as f64,
+            };
+            (self.drawer)(&self.image, self.viewport_size, changed_area);
+        }
     }
 
     pub fn pen_stroke_end(&mut self) {
@@ -146,7 +167,16 @@ impl Canvas {
     }
 
     pub fn reflect_all(&mut self) {
-        (self.drawer)(&self.image, self.viewport_size);
+        (self.drawer)(
+            &self.image,
+            self.viewport_size,
+            Rectangle {
+                x: 0.0,
+                y: 0.0,
+                width: self.viewport_size.0 as f64,
+                height: self.viewport_size.1 as f64,
+            },
+        );
     }
 
     #[allow(dead_code)]
