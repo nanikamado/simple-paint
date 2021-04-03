@@ -183,8 +183,20 @@ impl Viewport {
     }
 
     pub fn key_press(&mut self, key: gdk::keys::Key) {
-        self.pressing_keys.insert(key);
-        self.set_pen();
+        match key {
+            gdk::keys::constants::KP_Add => {
+                self.zoom_canvas_relative(1.5, (0.0, 0.0));
+                (self.draw_handler)();
+            }
+            gdk::keys::constants::KP_Subtract => {
+                self.zoom_canvas_relative(2.0 / 3.0, (0.0, 0.0));
+                (self.draw_handler)();
+            }
+            _ => {
+                self.pressing_keys.insert(key);
+                self.set_pen();
+            }
+        }
     }
 
     pub fn key_release(&mut self, key: gdk::keys::Key) {
