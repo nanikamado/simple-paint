@@ -117,6 +117,45 @@ pub fn circle_pen(
     h.into_iter().map(|p| (p, RGB::new(0, 0, 0)))
 }
 
+pub fn debug_pen(
+    input: &PenInput,
+    previous_input: &Option<PenInput>,
+    setting: &PenSetting,
+) -> impl Iterator<Item = ((i32, i32), RGB)> {
+    let blue = RGB::new(0x03, 0xfc, 0xcf);
+    match previous_input {
+        None => circle(
+            pressure_to_radias(input.pressure, setting.size),
+            input.x,
+            input.y,
+        )
+        .map(|p| (p, blue))
+        .collect::<Vec<_>>()
+        .into_iter(),
+        Some(previous_input) => {
+            let previous_size =
+                pressure_to_radias(previous_input.pressure, setting.size);
+            let size = pressure_to_radias(input.pressure, setting.size);
+            line(
+                previous_size,
+                previous_input.x,
+                previous_input.y,
+                size,
+                input.x,
+                input.y,
+            )
+            .map(|p| (p, RGB::new(0, 0, 0)))
+            .chain(
+                circle(previous_size, previous_input.x, previous_input.y)
+                    .map(|p| (p, blue)),
+            )
+            .chain(circle(size, input.x, input.y).map(|p| (p, blue)))
+            .collect::<Vec<_>>()
+            .into_iter()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
