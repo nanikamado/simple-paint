@@ -155,8 +155,8 @@ impl Canvas {
             let changed_area = Rectangle {
                 x: min_x as f64,
                 y: min_y as f64,
-                width: (max_x - min_x) as f64,
-                height: (max_y - min_y) as f64,
+                width: (max_x - min_x + 1) as f64,
+                height: (max_y - min_y + 1) as f64,
             };
             (self.drawer)(&self.image, self.viewport_size, changed_area);
         }
