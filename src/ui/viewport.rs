@@ -9,6 +9,33 @@ struct ViewportData {
     background_color: RGB,
     cairo_context: Rc<RefCell<Option<cairo::Context>>>,
     canvas_display_matrix: cairo::Matrix,
+    image_surface: Option<cairo::ImageSurface>,
+}
+
+impl ViewportData {
+    fn render_image_surface(&self, area: canvas::Rectangle) -> Option<()> {
+        let context = self.cairo_context.borrow();
+        let context = context.as_ref().unwrap();
+        context.save();
+        context.set_matrix(self.canvas_display_matrix);
+        context.rectangle(area.x, area.y, area.width, area.height);
+        context.clip();
+        context.set_source_surface(self.image_surface.as_ref()?, 0.0, 0.0);
+        let filter = if self
+            .canvas_display_matrix
+            .transform_distance(1.0, 0.0)
+            .0
+            > 1.5
+        {
+            cairo::Filter::Nearest
+        } else {
+            cairo::Filter::Good
+        };
+        context.get_source().set_filter(filter);
+        context.paint();
+        context.restore();
+        Some(())
+    }
 }
 
 #[derive(Debug)]
@@ -46,32 +73,9 @@ fn make_draw_handler(
                 stride,
             )
             .unwrap();
-            let viewport_data = viewport_data.borrow();
-            let context = viewport_data.cairo_context.borrow();
-            let context = context.as_ref().unwrap();
-            context.save();
-            context.set_matrix(viewport_data.canvas_display_matrix);
-            context.rectangle(
-                changed_area.x,
-                changed_area.y,
-                changed_area.width,
-                changed_area.height,
-            );
-            context.clip();
-            context.set_source_surface(&image, 0.0, 0.0);
-            let filter = if viewport_data
-                .canvas_display_matrix
-                .transform_distance(1.0, 0.0)
-                .0
-                > 1.5
-            {
-                cairo::Filter::Nearest
-            } else {
-                cairo::Filter::Good
-            };
-            context.get_source().set_filter(filter);
-            context.paint();
-            context.restore();
+            let mut viewport_data_mu = viewport_data.borrow_mut();
+            viewport_data_mu.image_surface = Some(image);
+            viewport_data_mu.render_image_surface(changed_area);
         },
     )
 }
@@ -88,6 +92,7 @@ impl Viewport {
             background_color: RGB::new(0x33, 0x33, 0x40),
             cairo_context,
             canvas_display_matrix: cairo::Matrix::identity(),
+            image_surface: None,
         }));
         Viewport {
             data: data.clone(),
@@ -185,12 +190,15 @@ impl Viewport {
     }
 
     fn move_canvas_relative(&mut self, dx: f64, dy: f64) {
-        self.data
-            .borrow_mut()
-            .canvas_display_matrix
-            .translate(dx, dy);
         self.clear();
-        self.canvas.reflect_all();
+        let mut data = self.data.borrow_mut();
+        data.canvas_display_matrix.translate(dx, dy);
+        data.render_image_surface(canvas::Rectangle {
+            x: 0.0,
+            y: 0.0,
+            width: self.canvas.canvas_size.0 as f64,
+            height: self.canvas.canvas_size.1 as f64,
+        });
     }
 
     pub fn set_canvas_center(&mut self) {
@@ -204,14 +212,17 @@ impl Viewport {
     }
 
     fn zoom_canvas_relative(&mut self, ds: f64, origin: (f64, f64)) {
-        {
-            let mut data = self.data.borrow_mut();
-            data.canvas_display_matrix
-                .translate((1.0 - ds) * origin.0, (1.0 - ds) * origin.1);
-            data.canvas_display_matrix.scale(ds, ds);
-        }
         self.clear();
-        self.canvas.reflect_all();
+        let mut data = self.data.borrow_mut();
+        data.canvas_display_matrix
+            .translate((1.0 - ds) * origin.0, (1.0 - ds) * origin.1);
+        data.canvas_display_matrix.scale(ds, ds);
+        data.render_image_surface(canvas::Rectangle {
+            x: 0.0,
+            y: 0.0,
+            width: self.canvas.canvas_size.0 as f64,
+            height: self.canvas.canvas_size.1 as f64,
+        });
     }
 
     pub fn key_press(&mut self, key: gdk::keys::Key) {

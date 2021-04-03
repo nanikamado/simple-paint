@@ -103,7 +103,7 @@ pub type DrawHandler = Box<dyn Fn(&SingleVecImage, (usize, usize), Rectangle)>;
 pub struct Canvas {
     pub drawer: DrawHandler,
     viewport_size: (usize, usize),
-    canvas_size: (usize, usize),
+    pub canvas_size: (usize, usize),
     pub image: SingleVecImage,
     #[allow(dead_code)]
     background_color: RGB,
